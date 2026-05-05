@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Byte the Robot
 
 A fun, kid-friendly chatbot for an elementary school career day. Byte is a cheerful blue robot who teaches kids ages 8–10 about coding, computers, and robots in 2–3 enthusiastic sentences.
@@ -34,7 +33,7 @@ cp .env.local.example .env.local
 Then edit `.env.local` so it reads:
 
 ```
-ANTHROPIC_AUTH_TOKEN=sk-ant-oat01-...your token here...
+ANTHROPIC_AUTH_TOKEN=...your token here...
 ```
 
 ### 4. Run the dev server
@@ -69,7 +68,3 @@ tailwind.config.ts  # Custom blue/yellow theme + animations
 - The system prompt and the model (`claude-sonnet-4-6`) are configured in `app/api/chat/route.ts`.
 - Each request is independent — Byte does not remember previous turns. This keeps things simple and safe for a live demo.
 - If the token expires, just rerun `claude setup-token` and update `.env.local`.
-=======
-# byte-thechatbot
-Byte the Robot — A kid-friendly AI chatbot that teaches children ages 8–10 about computers and coding,   powered by Claude Sonnet. Features a fully animated robot character, text-to-speech responses, IP-based   rate limiting, and a responsive UI built with Next.js and Tailwind CSS.
->>>>>>> bbe972c93fe6dcaffabe5e7893ac86f09ffc9a1e
