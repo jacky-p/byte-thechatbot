@@ -21,6 +21,10 @@ export function checkRateLimit(ip: string): { allowed: boolean; remaining: numbe
   const entry = store.get(ip);
 
   if (!entry || now >= entry.resetAt) {
+    // Prune all expired entries on each new window to prevent unbounded growth.
+    for (const [key, val] of store) {
+      if (now >= val.resetAt) store.delete(key);
+    }
     store.set(ip, { count: 1, resetAt: now + WINDOW_MS });
     return { allowed: true, remaining: LIMIT - 1 };
   }

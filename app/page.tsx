@@ -32,6 +32,7 @@ export default function Home() {
   const [speaking, setSpeaking] = useState(false);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [voiceName, setVoiceName] = useState<string>("");
+  const [pendingVoiceName, setPendingVoiceName] = useState<string>("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
@@ -50,14 +51,16 @@ export default function Home() {
     const loadVoices = () => {
       const all = window.speechSynthesis.getVoices().filter((v) => v.lang.startsWith("en"));
       setVoices(all);
-      setVoiceName((current) => {
+      const getBest = (current: string) => {
         if (current && all.some((v) => v.name === current)) return current;
         for (const pattern of FRIENDLY_VOICE_PATTERNS) {
           const match = all.find((v) => pattern.test(v.name));
           if (match) return match.name;
         }
         return all[0]?.name ?? "";
-      });
+      };
+      setVoiceName((c) => getBest(c));
+      setPendingVoiceName((c) => getBest(c));
     };
     loadVoices();
     window.speechSynthesis.addEventListener("voiceschanged", loadVoices);
@@ -81,13 +84,13 @@ export default function Home() {
     };
   }, [settingsOpen]);
 
-  function speak(text: string) {
+  function speak(text: string, useVoiceName = voiceName) {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
-    const chosen = voices.find((v) => v.name === voiceName);
+    const chosen = voices.find((v) => v.name === useVoiceName);
     if (chosen) utterance.voice = chosen;
     utterance.onstart = () => setSpeaking(true);
     utterance.onend = () => setSpeaking(false);
@@ -113,7 +116,7 @@ export default function Home() {
 
   function testVoice() {
     userInteracted.current = true;
-    speak("Hi! I'm Byte! Coding is super fun!");
+    speak("Hi! I'm Byte! Coding is super fun!", pendingVoiceName);
   }
 
   async function send(text: string) {
@@ -193,8 +196,8 @@ export default function Home() {
                 <label className="flex flex-col gap-1">
                   <span className="text-sm font-bold text-byteblueDark">Pick a voice</span>
                   <select
-                    value={voiceName}
-                    onChange={(e) => setVoiceName(e.target.value)}
+                    value={pendingVoiceName}
+                    onChange={(e) => setPendingVoiceName(e.target.value)}
                     disabled={voices.length === 0}
                     className="px-3 py-2 rounded-xl border-4 border-byteblue bg-white text-byteblue text-sm font-bold shadow-sm focus:outline-none focus:ring-4 focus:ring-byteyellow disabled:opacity-50"
                   >
@@ -214,6 +217,15 @@ export default function Home() {
                   className="px-3 py-2 rounded-xl border-4 border-byteblue bg-byteyellow text-byteblueDark text-sm font-bold shadow-sm active:scale-95 disabled:opacity-50"
                 >
                   Try this voice
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setVoiceName(pendingVoiceName)}
+                  disabled={voices.length === 0 || pendingVoiceName === voiceName}
+                  className="px-3 py-2 rounded-xl border-4 border-byteblue bg-byteblue text-white text-sm font-bold shadow-sm active:scale-95 disabled:opacity-50"
+                >
+                  Set voice
                 </button>
               </div>
             </div>
@@ -256,6 +268,7 @@ export default function Home() {
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type a question for Byte..."
             disabled={loading}
+            maxLength={300}
             className="flex-1 px-4 py-3 text-lg md:text-xl border-4 border-byteblue rounded-2xl outline-none focus:ring-4 focus:ring-byteyellow disabled:opacity-50 bg-white"
           />
           <button

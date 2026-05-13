@@ -5,13 +5,14 @@ import { checkRateLimit, getClientIp } from "./rateLimiter";
 export const runtime = "nodejs";
 
 const SYSTEM_PROMPT =
-  "You are Byte, a super fun and friendly robot who loves teaching kids ages 8-10 about computers and coding. Keep answers to 1-2 short sentences. Use simple words a 3rd grader understands. Be enthusiastic and funny. Use fun comparisons like coding is like giving a robot a recipe to follow. If asked something off-topic redirect cheerfully back to computers or science. Tell kid-friendly computer jokes when asked. Always end with a fun exclamation. Make coding sound awesome and totally possible for any kid. Do NOT use any emojis, emoticons, or special symbols in your response — your reply will be read aloud by a text-to-speech voice and emojis sound terrible. Do NOT end with a question or any other invitation to continue the conversation — each reply is a complete, standalone answer.";
+  "You are Byte, a cheerful and enthusiastic robot who genuinely loves teaching kids ages 8-10 about computers and coding. You have a warm, upbeat personality and a great sense of humor — you make every topic feel fun and exciting without going overboard. You MUST write at a 3rd grade reading level at all times — use only short, simple, everyday words that an 8-year-old would know. Never use big or technical words without immediately explaining them in the simplest way possible, like 'an algorithm is just a list of steps, like a recipe.' Keep every answer to 1-2 short sentences maximum. Be enthusiastic, warm, and funny. Use playful comparisons to things kids know, like food, games, toys, or animals. If asked about anything not related to computers, coding, technology, or science, do NOT answer the off-topic question at all — give one short cheerful sentence redirecting back to computers or coding, then a fun exclamation. Never discuss people, celebrities, sports, food, movies, TV shows, or any other non-tech topic. Tell kid-friendly computer jokes when asked. Always end with a fun, upbeat exclamation. Make coding sound like a really cool adventure. Do NOT refer to the person you are talking to as a kid, child, or any similar word — use 'you' or 'people' instead. Do NOT use any emojis, emoticons, or special symbols in your response — your reply will be read aloud by a text-to-speech voice and emojis sound terrible. Do NOT end with a question or any other invitation to continue the conversation — each reply is a complete, standalone answer.";
 
 export async function POST(req: Request) {
-  const authToken = process.env.ANTHROPIC_AUTH_TOKEN;
-  if (!authToken) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    console.error("ANTHROPIC_API_KEY is not set.");
     return NextResponse.json(
-      { error: "Server is missing ANTHROPIC_AUTH_TOKEN. Run `claude setup-token` and add it to .env.local." },
+      { error: "Oops! Byte is taking a break right now. Try again later!" },
       { status: 500 },
     );
   }
@@ -32,35 +33,30 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  const message = body.message?.trim();
+  if (typeof body.message !== "string") {
+    return NextResponse.json({ error: "Message is required." }, { status: 400 });
+  }
+  const message = body.message.trim();
   if (!message) {
     return NextResponse.json({ error: "Message is required." }, { status: 400 });
   }
+  if (message.length > 300) {
+    return NextResponse.json({ error: "Whoa, that's a lot of words! Try asking something shorter." }, { status: 400 });
+  }
 
-  const client = new Anthropic({
-    authToken,
-    defaultHeaders: { "anthropic-beta": "oauth-2025-04-20" },
-  });
+  const client = new Anthropic({ apiKey });
 
   try {
     const response = await client.messages.create({
-      model: "claude-sonnet-4-6",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 400,
-      system: [
-        { type: "text", text: "You are Claude Code, Anthropic's official CLI for Claude." },
-        { type: "text", text: SYSTEM_PROMPT },
-      ],
+      system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: message }],
     });
 
-    const rawReply = response.content
-      .filter((b): b is Anthropic.TextBlock => b.type === "text")
-      .map((b) => b.text)
-      .join("")
-      .trim();
+    const rawReply =
+      response.content[0].type === "text" ? response.content[0].text.trim() : "";
 
-    // Strip any emoji / pictographic characters and tidy up resulting spacing,
-    // in case the model slipped one in despite the system-prompt instruction.
     const reply = rawReply
       .replace(/\p{Extended_Pictographic}/gu, "")
       .replace(/[\u{1F1E6}-\u{1F1FF}]/gu, "")
@@ -72,9 +68,9 @@ export async function POST(req: Request) {
       reply: reply || "Beep boop! My brain is fuzzy. Try asking again!",
     });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "Unknown error";
+    console.error("Byte API error:", error);
     return NextResponse.json(
-      { error: `Byte's brain hiccupped: ${msg}` },
+      { error: "Oops! Byte's brain took a little nap. Try again in a moment!" },
       { status: 500 },
     );
   }
